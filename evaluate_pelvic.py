@@ -34,11 +34,16 @@ def main(device, args):
     config = OmegaConf.merge(*configs)#, cli)
     model = instantiate_from_config(config.model)
     model.init_from_ckpt(ckpt_file)
+    model.to(device)
+    model.eval()
 
     test_data_s, _, _, _ = common_pelvic.load_test_data(args.data_dir)
     test_img = numpy.expand_dims(test_data_s[0, 100:116, :, :], 1)
-    syn_img, codes = model.forward(torch.tensor(test_img, device=device))
-
+    with torch.no_grad():
+        syn_img, codes = model.forward(torch.tensor(test_img, device=device))
+    
+    syn_img = torch.clamp(syn_img, -1, 1)
+    syn_img = syn_img.detach().cpu().numpy()
     pdb.set_trace()
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
