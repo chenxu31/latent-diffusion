@@ -17,6 +17,7 @@ from functools import partial
 from tqdm import tqdm
 from torchvision.utils import make_grid
 from pytorch_lightning.utilities.distributed import rank_zero_only
+import pdb
 
 from ldm.util import log_txt_as_img, exists, default, ismap, isimage, mean_flat, count_params, instantiate_from_config
 from ldm.modules.ema import LitEma
@@ -109,9 +110,11 @@ class DDPM(pl.LightningModule):
         self.loss_type = loss_type
 
         self.learn_logvar = learn_logvar
-        self.logvar = torch.full(fill_value=logvar_init, size=(self.num_timesteps,))
+        logvar = torch.full(fill_value=logvar_init, size=(self.num_timesteps,))
         if self.learn_logvar:
-            self.logvar = nn.Parameter(self.logvar, requires_grad=True)
+            logvar = nn.Parameter(logvar, requires_grad=True)
+
+        self.register_buffer('logvar', logvar)
 
 
     def register_schedule(self, given_betas=None, beta_schedule="linear", timesteps=1000,
