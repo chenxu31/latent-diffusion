@@ -23,6 +23,7 @@ else:
 sys.path.append(UTIL_DIR)
 import common_metrics
 import common_pelvic_pt as common_pelvic
+import common_net_pt as common_net
 
 
 def main(device, args):
@@ -49,11 +50,12 @@ def main(device, args):
             syn_im = common_net.produce_results(device, model, [patch_shape, ], [test_data[i], ],
                                                 data_shape=test_data.shape[1:], patch_shape=patch_shape, is_seg=False,
                                                 batch_size=16)
-            syn_im = torch.clamp(syn_im, -1., 1.).detach().cpu().numpy()
+            
+            syn_im = syn_im.clip(-1, 1)
             psnr_list[i] = common_metrics.psnr(syn_im, test_data[i])
 
             if args.output_dir:
-                common_pelvic.save_nii(syn_im, os.path.join(args.output_dir, "syn_%d.nii.gz" % d))
+                common_pelvic.save_nii(syn_im, os.path.join(args.output_dir, "syn_%d.nii.gz" % i))
 
     """
         syn_img, codes = model.forward(torch.tensor(test_img, device=device))
@@ -69,7 +71,7 @@ def main(device, args):
             skimage.io.imsave(os.path.join(args.output_dir, "syn_%d.jpg" % i), common_pelvic.data_restore(syn_img[i, 0, :, :]))
     """
 
-    print(111)
+    print("psnr:%f/%f" % (psnr_list.mean(), psnr_list.std()))
 
 
 if __name__ == '__main__':
