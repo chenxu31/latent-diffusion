@@ -11,6 +11,8 @@ import platform
 import skimage.io
 import glob
 import ldm.models.autoencoder as autoencoder
+from omegaconf import OmegaConf
+from ldm.util import instantiate_from_config
 
 
 if platform.system() == 'Windows':
@@ -24,14 +26,15 @@ import common_pelvic_pt as common_pelvic
 
 
 def main(device, args):
-    ckpt = os.path.join(args.log_dir, "checkpoints", "last.ckpt")
-    configs = sorted(glob.glob(os.path.join(args.log_dir, "configs/*.yaml")))
-    args.resume_from_checkpoint = ckpt
-    args.base = configs
+    ckpt_file = os.path.join(args.log_dir, "checkpoints", "last.ckpt")
+    
+    config_files = sorted(glob.glob(os.path.join(args.log_dir, "configs/*.yaml")))
+    configs = [OmegaConf.load(cfg) for cfg in config_files]
+    #cli = OmegaConf.from_dotlist(unknown)
+    config = OmegaConf.merge(*configs)#, cli)
     model = instantiate_from_config(config.model)
-
-
-    #net = torch.load(os.path.join(args.checkpoint_dir, "last.ckpt"), map_location=device)
+    model.init_from_ckpt(ckpt_file)
+    
 
 
     pdb.set_trace()
