@@ -37,9 +37,25 @@ def main(device, args):
     model.to(device)
     model.eval()
 
-    test_data_s, _, _, _ = common_pelvic.load_test_data(args.data_dir)
-    test_img = numpy.expand_dims(test_data_s[0, 100:116, :, :], 1)
+    test_data, _, _, _ = common_pelvic.load_test_data(args.data_dir)
+    patch_shape = (1, test_data.shape[2], test_data.shape[3])
+
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+
+    psnr_list = numpy.zeros((test_data.shape[0],), numpy.float32)
     with torch.no_grad():
+        for i in range(test_data.shape[0]):
+            syn_im = common_net.produce_results(device, model, [patch_shape, ], [test_data[i], ],
+                                                data_shape=test_data.shape[1:], patch_shape=patch_shape, is_seg=False,
+                                                batch_size=16)
+            syn_im = torch.clamp(syn_im, -1., 1.).detach().cpu().numpy()
+            psnr_list[i] = common_metrics.psnr(syn_im, test_data[i])
+
+            if args.output_dir:
+                common_pelvic.save_nii(syn_im, os.path.join(args.output_dir, "syn_%d.nii.gz" % d))
+
+    """
         syn_img, codes = model.forward(torch.tensor(test_img, device=device))
     
     syn_img = torch.clamp(syn_img, -1, 1)
@@ -51,6 +67,7 @@ def main(device, args):
         for i in range(syn_img.shape[0]):
             skimage.io.imsave(os.path.join(args.output_dir, "ori_%d.jpg" % i), common_pelvic.data_restore(test_img[i, 0, :, :]))
             skimage.io.imsave(os.path.join(args.output_dir, "syn_%d.jpg" % i), common_pelvic.data_restore(syn_img[i, 0, :, :]))
+    """
 
     print(111)
 
