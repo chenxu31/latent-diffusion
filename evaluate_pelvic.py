@@ -34,10 +34,20 @@ def main(device, args):
     config = OmegaConf.merge(*configs)#, cli)
     model = instantiate_from_config(config.model)
     model.init_from_ckpt(ckpt_file)
-    
 
+    test_data_s, _, _, _ = common_pelvic.load_test_data(args.data_dir)
+    test_img = numpy.expand_dims(test_data_s[0, 100:116, :, :], 1)
+    pdb.set_trace()
+    syn_img, codes = model.forward(test_img)
 
     pdb.set_trace()
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+
+        for i in range(syn_img.shape[0]):
+            skimage.io.imsave(os.path.join(args.output_dir, "ori_%d.jpg" % i), common_pelvic.data_restore(test_img[i, 0, :, :]))
+            skimage.io.imsave(os.path.join(args.output_dir, "syn_%d.jpg" % i), common_pelvic.data_restore(syn_img[i, 0, :, :]))
+
     print(111)
 
 
