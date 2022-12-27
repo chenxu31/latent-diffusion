@@ -37,8 +37,7 @@ def main(device, args):
 
     test_data_s, _, _, _ = common_pelvic.load_test_data(args.data_dir)
     test_img = numpy.expand_dims(test_data_s[0, 100:116, :, :], 1)
-    pdb.set_trace()
-    syn_img, codes = model.forward(test_img)
+    syn_img, codes = model.forward(torch.tensor(test_img, device=device))
 
     pdb.set_trace()
     if not os.path.exists(args.output_dir):
