@@ -10,8 +10,7 @@ import numpy
 import platform
 import skimage.io
 import glob
-#import ldm.models.autoencoder as autoencoder
-from ldm.models.diffusion.ddpm import LatentDiffusion
+import ldm.models.autoencoder as autoencoder
 from omegaconf import OmegaConf
 from ldm.util import instantiate_from_config
 
@@ -39,16 +38,24 @@ def main(device, args):
     model.to(device)
     model.eval()
 
-    pdb.set_trace()
+    test_data, _, _, _ = common_pelvic.load_test_data(args.data_dir)
+    patch_shape = (1, test_data.shape[2], test_data.shape[3])
 
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
 
+    psnr_list = numpy.zeros((test_data.shape[0],), numpy.float32)
     with torch.no_grad():
-        pass
+        for i in range(test_data.shape[0]):
+            syn_im = common_net.produce_results(device, model, [patch_shape, ], [test_data[i], ],
+                                                data_shape=test_data.shape[1:], patch_shape=patch_shape, is_seg=False,
+                                                batch_size=16)
+            
+            syn_im = syn_im.clip(-1, 1)
+            psnr_list[i] = common_metrics.psnr(syn_im, test_data[i])
 
-        if args.output_dir:
-            common_pelvic.save_nii(syn_im, os.path.join(args.output_dir, "syn_%d.nii.gz" % i))
+            if args.output_dir:
+                common_pelvic.save_nii(syn_im, os.path.join(args.output_dir, "syn_%d.nii.gz" % i))
 
     """
         syn_img, codes = model.forward(torch.tensor(test_img, device=device))
@@ -70,10 +77,10 @@ def main(device, args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--gpu', type=int, default=0, help="gpu device id")
-    parser.add_argument('--data_dir', type=str, default=r'/home/chenxu/datasets/pelvic/h5_data_nonrigid', help='path of the dataset')
+    parser.add_argument('--data_dir', type=str, default=r'data', help='path of the dataset')
     parser.add_argument('--log_dir', type=str, default=r'checkpoints', help="checkpoint file dir")
     parser.add_argument('--output_dir', type=str, default='', help="the output directory")
-    parser.add_argument("--base", nargs="*", metavar="configs/latent-diffusion/pelvic-vq-f8.yaml",
+    parser.add_argument("--base", nargs="*", metavar="configs/autoencoder/autoencoder_kl_pelvic.yaml",
                         help="paths to base configs. Loaded from left-to-right. "
                              "Parameters can be overwritten or added with command-line options of the form `--key value`.",
                         default=list())
