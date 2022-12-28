@@ -6,11 +6,13 @@ model:
     embed_dim: 4
     n_embed: 256
     lossconfig:
-      target: ldm.modules.losses.LPIPSWithDiscriminator
+      target: taming.modules.losses.vqperceptual.VQLPIPSWithDiscriminator
       params:
-        disc_start: 50001
-        kl_weight: 0.000001
-        disc_weight: 0.5
+        disc_conditional: false
+        disc_in_channels: 3
+        disc_start: 250001
+        disc_weight: 0.75
+        codebook_weight: 1.0
 
     ddconfig:
       double_z: false
