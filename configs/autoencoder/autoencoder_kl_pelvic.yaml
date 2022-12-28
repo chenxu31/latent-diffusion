@@ -34,6 +34,6 @@ lightning:
         increase_log_steps: True
 
   trainer:
-    max_epochs: 1
+    max_epochs: 300
     benchmark: True
     accumulate_grad_batches: 2
