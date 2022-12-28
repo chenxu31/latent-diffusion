@@ -27,7 +27,7 @@ import common_net_pt as common_net
 
 
 @torch.no_grad()
-def produce_results(self, model, con_data, patch_shape, batch_size=16):
+def produce_results(model, con_data, patch_shape, batch_size=16):
     con_input = numpy.zeros((batch_size, patch_shape[0], con_data.shape[1], con_data.shape[2]), numpy.float32)
     syn_data = numpy.zeros_like(con_data)
     used = numpy.zeros_like(con_data)
@@ -36,7 +36,7 @@ def produce_results(self, model, con_data, patch_shape, batch_size=16):
     batch_locs = [None] * batch_size
     for i in range(con_data.shape[0]):
         batch_locs[idx] = i
-        con_input[idx, :, :, :] = con_data[i:i + patch_shape[1], :, :]
+        con_input[idx, :, :, :] = con_data[i:i + patch_shape[0], :, :]
 
         idx += 1
         if idx < batch_size:
@@ -44,10 +44,9 @@ def produce_results(self, model, con_data, patch_shape, batch_size=16):
 
         idx = 0
 
-        con_posterior = model.encode_first_stage(torch.tensor(batch_input, device=model.device))
-        con_z = self.get_first_stage_encoding(con_posterior).detach()
-        pdb.set_trace()
-        syn_z = model.p_sample_loop(con_z, (batch_size, con_z.shape[0], con_z.shape[1], con_z.shape[2]))
+        con_posterior = model.encode_first_stage(torch.tensor(con_input, device=model.device))
+        con_z = model.get_first_stage_encoding(con_posterior).detach()
+        syn_z = model.p_sample_loop(con_z, con_z.shape)
         syn_im = model.decode_first_stage(syn_z)
         syn_im = syn_im.detach().cpu().numpy().clip(-1, 1)
 
@@ -56,10 +55,9 @@ def produce_results(self, model, con_data, patch_shape, batch_size=16):
             used[loc:loc + patch_shape[0], :, :] += 1.
 
     if idx != 0:
-        con_posterior = model.encode_first_stage(torch.tensor(batch_input, device=model.device))
-        con_z = self.get_first_stage_encoding(con_posterior).detach()
-        pdb.set_trace()
-        syn_z = model.p_sample_loop(con_z, (batch_size, con_z.shape[0], con_z.shape[1], con_z.shape[2]))
+        con_posterior = model.encode_first_stage(torch.tensor(con_input, device=model.device))
+        con_z = model.get_first_stage_encoding(con_posterior).detach()
+        syn_z = model.p_sample_loop(con_z, con_z.shape)
         syn_im = model.decode_first_stage(syn_z)
         syn_im = syn_im.detach().cpu().numpy().clip(-1, 1)
 
@@ -88,24 +86,29 @@ def main(device, args):
     model.eval()
 
     ct_data, cbct_data, _, _ = common_pelvic.load_val_data(args.data_dir)
-    patch_depth = config.model.params.first_stage_config.params.in_channels
+    patch_depth = config.model.params.first_stage_config.params.ddconfig.in_channels
     patch_shape = (patch_depth, ct_data.shape[2], ct_data.shape[3])
+    
+    ct_data = ct_data[:1, 100:100+16, :, :]
+    cbct_data = cbct_data[:1, 100:100+16, :, :]
 
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
 
     psnr_list = numpy.zeros((ct_data.shape[0],), numpy.float32)
     with torch.no_grad():
-        for i in range(test_data.shape[0]):
-            syn_data = produce_results(model, cbct_data[i], patch_shape=patch_shape, is_seg=False,
-                                                batch_size=16)
+        for i in range(cbct_data.shape[0]):
+            syn_data = produce_results(model, cbct_data[i], patch_shape=patch_shape, batch_size=16)
 
-            pdb.set_trace()
-            syn_data = syn_data.clip(-1, 1)
-            psnr_list[i] = common_metrics.psnr(syn_data, ct_data[i])
+	    
+            #syn_data = syn_data.clip(-1, 1)
+            #psnr_list[i] = common_metrics.psnr(syn_data, ct_data[i])
 
             if args.output_dir:
-                common_pelvic.save_nii(syn_data, os.path.join(args.output_dir, "syn_%d.nii.gz" % i))
+                image = numpy.concatenate([ct_data, cbct_data, numpy.expand_dims(syn_data, 0)], 3)
+                image = common_pelvic.generate_display_image(image)
+                skimage.io.imsave(os.path.join(args.output_dir, "syn_im.jpg"), image)
+                #common_pelvic.save_nii(syn_data, os.path.join(args.output_dir, "syn_%d.nii.gz" % i))
 
     print("psnr:%f/%f" % (psnr_list.mean(), psnr_list.std()))
 
@@ -114,7 +117,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--gpu', type=int, default=0, help="gpu device id")
     parser.add_argument('--data_dir', type=str, default=r'/home/chenxu/datasets/pelvic/h5_data_nonrigid/', help='path of the dataset')
-    parser.add_argument('--log_dir', type=str, default=r'checkpoints', help="checkpoint file dir")
+    parser.add_argument('--log_dir', type=str, default=r'/home/chenxu/training/logs/ldm/ct_kl_pair/2022-12-28T11-15-29_pelvic/', help="checkpoint file dir")
     parser.add_argument('--output_dir', type=str, default='/home/chenxu/training/test_output/ldm/ct_kl_pair', help="the output directory")
     parser.add_argument("--base", nargs="*", metavar="configs/latent-diffusion/pelvic-vq-f8_pair.yaml",
                         help="paths to base configs. Loaded from left-to-right. "
