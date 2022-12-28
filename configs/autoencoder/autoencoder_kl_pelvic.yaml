@@ -16,6 +16,7 @@ model:
       z_channels: 4
       resolution: 256
       in_channels: 1
+      tanh_out: True
       out_ch: 1
       ch: 32
       ch_mult: [ 1,2,4,4 ]  # num_down = len(ch_mult)-1
@@ -33,5 +34,6 @@ lightning:
         increase_log_steps: True
 
   trainer:
+    max_epochs: 1
     benchmark: True
     accumulate_grad_batches: 2
