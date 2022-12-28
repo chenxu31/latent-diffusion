@@ -1,2 +1,4 @@
 nohup python main_pelvic.py --base configs/autoencoder/autoencoder_kl_pelvic.yaml --logdir /home/chenxu/training/logs/ldm/ct_kl -t --modality ct --gpus 0, > outputs/ae_ct_kl.txt
 nohup python main_pelvic.py --base configs/autoencoder/autoencoder_kl_pelvic.yaml --logdir /home/chenxu/training/logs/ldm/cbct_kl -t --modality cbct --gpus 0, > outputs/ae_cbct_kl.txt
+nohup python main_pelvic.py --base configs/autoencoder/autoencoder_vq_pelvic.yaml --logdir /home/chenxu/training/logs/ldm/ct_vq -t --modality ct --gpus 0, > outputs/ae_ct_vq.txt
+nohup python main_pelvic.py --base configs/autoencoder/autoencoder_vq_pelvic.yaml --logdir /home/chenxu/training/logs/ldm/cbct_vq -t --modality cbct --gpus 0, > outputs/ae_cbct_vq.txt

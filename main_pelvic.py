@@ -75,7 +75,7 @@ def get_parser(**parser_kwargs):
         "--no-test",
         type=str2bool,
         const=True,
-        default=False,
+        default=True,
         nargs="?",
         help="disable test",
     )
@@ -661,10 +661,10 @@ if __name__ == "__main__":
         trainer.logdir = logdir  ###
 
         # data
-        if config.model.params.cond_stage_config == "__is_unconditional__":
-            pelvic_dataset = PelvicDataset(opt.data_dir, opt.modality)
-        else:
+        if "cond_stage_config" in config.model.params and config.model.params.cond_stage_config != "__is_unconditional__":
             pelvic_dataset = PelvicDatasetPair(opt.data_dir)
+        else:
+            pelvic_dataset = PelvicDataset(opt.data_dir, opt.modality)
         data = DataLoader(pelvic_dataset, batch_size=opt.batch_size, shuffle=True)
 
         # configure learning rate
