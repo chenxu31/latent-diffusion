@@ -77,7 +77,7 @@ def main(device, args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--gpu', type=int, default=0, help="gpu device id")
-    parser.add_argument('--data_dir', type=str, default=r'data', help='path of the dataset')
+    parser.add_argument('--data_dir', type=str, default=r'/home/chenxu/datasets/pelvic/h5_data_nonrigid/', help='path of the dataset')
     parser.add_argument('--log_dir', type=str, default=r'checkpoints', help="checkpoint file dir")
     parser.add_argument('--output_dir', type=str, default='', help="the output directory")
     parser.add_argument("--base", nargs="*", metavar="configs/autoencoder/autoencoder_kl_pelvic.yaml",

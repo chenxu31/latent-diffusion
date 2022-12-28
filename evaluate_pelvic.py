@@ -39,40 +39,26 @@ def main(device, args):
     model.to(device)
     model.eval()
 
-    pdb.set_trace()
-
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
 
     with torch.no_grad():
-        pass
+        z_channels = config.model.params.unet_config.params.in_channels
+        image_size = config.model.params.unet_config.params.image_size
+        z = model.p_sample_loop(None, (16, z_channels, image_size, image_size))
+        syn_im = model.decode_first_stage(z)
+        syn_im = syn_im.detach().cpu().numpy().clip(-1, 1)
 
-        if args.output_dir:
-            common_pelvic.save_nii(syn_im, os.path.join(args.output_dir, "syn_%d.nii.gz" % i))
-
-    """
-        syn_img, codes = model.forward(torch.tensor(test_img, device=device))
-    
-    syn_img = torch.clamp(syn_img, -1, 1)
-    syn_img = syn_img.detach().cpu().numpy()
-    pdb.set_trace()
-    if not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir)
-
-        for i in range(syn_img.shape[0]):
-            skimage.io.imsave(os.path.join(args.output_dir, "ori_%d.jpg" % i), common_pelvic.data_restore(test_img[i, 0, :, :]))
-            skimage.io.imsave(os.path.join(args.output_dir, "syn_%d.jpg" % i), common_pelvic.data_restore(syn_img[i, 0, :, :]))
-    """
-
-    print("psnr:%f/%f" % (psnr_list.mean(), psnr_list.std()))
+        syn_im = common_pelvic.generate_display_image(syn_im)
+        skimage.io.imsave(os.path.join(args.output_dir, "syn_im.jpg"), syn_im)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--gpu', type=int, default=0, help="gpu device id")
-    parser.add_argument('--data_dir', type=str, default=r'/home/chenxu/datasets/pelvic/h5_data_nonrigid', help='path of the dataset')
-    parser.add_argument('--log_dir', type=str, default=r'checkpoints', help="checkpoint file dir")
-    parser.add_argument('--output_dir', type=str, default='', help="the output directory")
+    parser.add_argument('--data_dir', type=str, default=r'/home/chenxu/datasets/pelvic/h5_data_nonrigid/', help='path of the dataset')
+    parser.add_argument('--log_dir', type=str, default=r'/home/chenxu/training/logs/ldm/ct_kl/2022-12-27T19-48-14_pelvic/', help="checkpoint file dir")
+    parser.add_argument('--output_dir', type=str, default='/home/chenxu/training/test_output/ldm/ct_kl', help="the output directory")
     parser.add_argument("--base", nargs="*", metavar="configs/latent-diffusion/pelvic-vq-f8.yaml",
                         help="paths to base configs. Loaded from left-to-right. "
                              "Parameters can be overwritten or added with command-line options of the form `--key value`.",

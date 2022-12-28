@@ -660,8 +660,6 @@ if __name__ == "__main__":
         trainer = Trainer.from_argparse_args(trainer_opt, **trainer_kwargs)
         trainer.logdir = logdir  ###
 
-        pdb.set_trace()
-
         # data
         if config.model.params.cond_stage_config == "__is_unconditional__":
             pelvic_dataset = PelvicDataset(opt.data_dir, opt.modality)
