@@ -203,6 +203,40 @@ class PelvicDataset(Dataset):
         return (img.astype(np.float32) - self.MIN_VALUE) * 2. / (self.MAX_VALUE - self.MIN_VALUE) - 1.
 
 
+class PelvicDatasetPair(Dataset):
+    def __init__(self, data_dir):
+        self.data_dir = data_dir
+        self.load_data()
+
+        self.MIN_VALUE = -1024
+        self.MAX_VALUE = 1024
+
+    def __len__(self):
+        return self.num_subjects * self.num_depths
+
+    def __getitem__(self, idx):
+        subject_id = idx // self.num_depths
+        depth_id = idx % self.num_depths
+
+        ct_image = np.array(self.ct_data_f["data"][subject_id, depth_id: depth_id + 1, :, :])
+        cbct_image = np.array(self.cbct_data_f["data"][subject_id, depth_id: depth_id + 1, :, :])
+        ct_image = self.normalize(ct_image).transpose((1, 2, 0))
+        cbct_image = self.normalize(cbct_image).transpose((1, 2, 0))
+
+        return {
+            "ct_image": torch.from_numpy(ct_image),
+            "cbct_image": torch.from_numpy(cbct_image),
+        }
+
+    def load_data(self):
+        self.ct_data_f = h5py.File(os.path.join(self.data_dir, "test_plan.h5"), "r")
+        self.cbct_data_f = h5py.File(os.path.join(self.data_dir, "test_treat.h5"), "r")
+        self.num_subjects, self.num_depths = self.ct_data_f["data"].shape[0:2]
+
+    def normalize(self, img):
+        return (img.astype(np.float32) - self.MIN_VALUE) * 2. / (self.MAX_VALUE - self.MIN_VALUE) - 1.
+
+
 class SetupCallback(Callback):
     def __init__(self, resume, now, logdir, ckptdir, cfgdir, config, lightning_config):
         super().__init__()
@@ -626,8 +660,13 @@ if __name__ == "__main__":
         trainer = Trainer.from_argparse_args(trainer_opt, **trainer_kwargs)
         trainer.logdir = logdir  ###
 
+        pdb.set_trace()
+
         # data
-        pelvic_dataset = PelvicDataset(opt.data_dir, opt.modality)
+        if config.model.params.cond_stage_config == "__is_unconditional__":
+            pelvic_dataset = PelvicDataset(opt.data_dir, opt.modality)
+        else:
+            pelvic_dataset = PelvicDatasetPair(opt.data_dir)
         data = DataLoader(pelvic_dataset, batch_size=opt.batch_size, shuffle=True)
 
         # configure learning rate
