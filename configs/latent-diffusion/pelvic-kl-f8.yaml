@@ -35,12 +35,12 @@ model:
         - 4
         num_heads: 8
     first_stage_config:
-      target: ldm.models.autoencoder.VQModelInterface
+      target: ldm.models.autoencoder.AutoencoderKL  #VQModelInterface
       params:       
         embed_dim: 4
         ckpt_path: logs/2022-12-26T20-03-39_pelvic/checkpoints/last.ckpt #configs/first_stage_models/vq-f8/model.yaml
         ddconfig:
-          double_z: false
+          double_z: True
           z_channels: 4
           resolution: 256
           in_channels: 1
