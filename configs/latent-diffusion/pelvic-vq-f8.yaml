@@ -38,7 +38,8 @@ model:
       target: ldm.models.autoencoder.VQModelInterface
       params:       
         embed_dim: 4
-        ckpt_path: logs/2022-12-26T20-03-39_pelvic/checkpoints/last.ckpt #configs/first_stage_models/vq-f8/model.yaml
+        n_embed: 256
+        ckpt_path: /home/chenxu/training/logs/ldm/ct_vq/2022-12-30T16-56-16_autoencoder_vq_pelvic/checkpoints/last.ckpt #configs/first_stage_models/vq-f8/model.yaml
         ddconfig:
           double_z: false
           z_channels: 4
