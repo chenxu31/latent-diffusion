@@ -56,7 +56,6 @@ def main(device, args):
                                                 data_shape=test_data.shape[1:], patch_shape=patch_shape, is_seg=False,
                                                 batch_size=16)
 
-            pdb.set_trace()
             syn_im = syn_im.clip(-1, 1)
             psnr_list[i] = common_metrics.psnr(syn_im, test_data[i])
 
