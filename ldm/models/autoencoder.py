@@ -280,6 +280,9 @@ class VQModelInterface(VQModel):
         quant = self.post_quant_conv(quant)
         dec = self.decoder(quant)
         return dec
+    
+    def forward(self, x):
+        return self.decode(self.encode(x))
 
 
 class AutoencoderKL(pl.LightningModule):
