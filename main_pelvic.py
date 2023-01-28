@@ -148,6 +148,14 @@ def get_parser(**parser_kwargs):
         choices=["ct", "cbct"],
         help="modality",
     )
+    parser.add_argument(
+        "--n_slices",
+        type=int,
+        nargs="?",
+        const=True,
+        default=1,
+        help="dataset dir",
+    )
     return parser
 
 
@@ -727,7 +735,7 @@ if __name__ == "__main__":
         if "cond_stage_config" in config.model.params and config.model.params.cond_stage_config != "__is_unconditional__":
             pelvic_dataset = PelvicDatasetPair(opt.data_dir)
         else:
-            pelvic_dataset = PelvicDataset(opt.data_dir, opt.modality)
+            pelvic_dataset = PelvicDatasetEx(opt.data_dir, opt.modality, n_slices=opt.n_slices)
         data = DataLoader(pelvic_dataset, batch_size=opt.batch_size, shuffle=True)
 
         # configure learning rate
