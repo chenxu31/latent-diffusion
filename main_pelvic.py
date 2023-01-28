@@ -248,7 +248,7 @@ class PelvicDatasetEx(Dataset):
             image = np.array(self.data_test_f["data"][subject_id, depth_id: depth_id + self.n_slices, :, :])
 
         image = self.normalize(image).transpose((1, 2, 0))
-        image = self.transform(image)
+        image = self.transform(image).permute((1, 2, 0))
 
         return {
             "image": image,
