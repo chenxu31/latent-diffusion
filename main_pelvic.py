@@ -7,6 +7,7 @@ import torch
 import torchvision
 import h5py
 import pytorch_lightning as pl
+from torchvision import transforms
 
 from packaging import version
 from omegaconf import OmegaConf
@@ -196,8 +197,70 @@ class PelvicDataset(Dataset):
         }
 
     def load_data(self):
-        self.data_f = h5py.File(os.path.join(self.data_dir, "train_%s.h5" % ("plan" if self.modality == "ct" else "treat")), "r")
+        self.data_f = h5py.File(
+            os.path.join(self.data_dir, "train_%s.h5" % ("plan" if self.modality == "ct" else "treat")), "r")
         self.num_subjects, self.num_depths = self.data_f["data"].shape[0:2]
+
+    def normalize(self, img):
+        return (img.astype(np.float32) - self.MIN_VALUE) * 2. / (self.MAX_VALUE - self.MIN_VALUE) - 1.
+
+
+class PelvicDatasetEx(Dataset):
+    def __init__(self, data_dir, modality, n_slices=1):
+        assert modality in ("ct", "cbct")
+
+        self.data_dir = data_dir
+        self.modality = modality
+        self.n_slices = n_slices
+        self.load_data()
+
+        self.transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.RandomRotation(5, fill=-1),
+            transforms.RandomResizedCrop((self.patch_height, self.patch_width), scale=(0.8, 1.0)),
+            transforms.RandomHorizontalFlip(),
+            transforms.ColorJitter(saturation=0.1),
+            # transforms.ColorJitter(brightness=0.9, contrast=0.9, saturation=0.9, hue=0.1),
+        ])
+
+        self.MIN_VALUE = -1024
+        self.MAX_VALUE = 1024
+
+    def __len__(self):
+        return self.n_slices_train + self.n_slices_test
+
+    def __getitem__(self, idx):
+        if idx < self.n_slices_train:
+            subject_id = idx // self.slices_per_subject_train
+            depth_id = idx % self.slices_per_subject_train
+            image = np.array(self.data_train_f["data"][subject_id, depth_id: depth_id + 1, :, :])
+        else:
+            subject_id = (idx - self.n_slices_train) // self.slices_per_subject_test
+            depth_id = (idx - self.n_slices_train) % self.slices_per_subject_test
+            image = np.array(self.data_test_f["data"][subject_id, depth_id: depth_id + 1, :, :])
+
+        ori_image = self.normalize(image.copy())
+        image = self.normalize(image).transpose((1, 2, 0))
+        image = self.transform(image)
+
+        return {
+            "ori_image": ori_image,
+            "image": image,
+        }
+
+    def load_data(self):
+        self.data_train_f = h5py.File(
+            os.path.join(self.data_dir, "train_%s.h5" % ("plan" if self.modality == "ct" else "treat")), "r")
+        self.data_test_f = h5py.File(
+            os.path.join(self.data_dir, "test_%s.h5" % ("plan" if self.modality == "ct" else "treat")), "r")
+        self.num_train_subjects = self.data_train_f["data"].shape[0]
+        self.slices_per_subject_train = self.data_train_f["data"].shape[1] - self.n_slices + 1
+        self.num_test_subjects = self.data_test_f["data"].shape[0]
+        self.slices_per_subject_test = self.data_test_f["data"].shape[1] - self.n_slices + 1
+        self.n_slices_train = self.num_train_subjects * self.slices_per_subject_train
+        self.n_slices_test = self.num_test_subjects * self.slices_per_subject_test
+        self.patch_height, self.patch_width = self.data_train_f["data"].shape[2:]
+        self.patch_shape = (self.n_slices, self.patch_height, self.patch_width)
 
     def normalize(self, img):
         return (img.astype(np.float32) - self.MIN_VALUE) * 2. / (self.MAX_VALUE - self.MIN_VALUE) - 1.
@@ -528,7 +591,7 @@ if __name__ == "__main__":
             gpuinfo = trainer_config["gpus"]
             print(f"Running on GPUs {gpuinfo}")
             cpu = False
-            
+
         trainer_opt = argparse.Namespace(**trainer_config)
         lightning_config.trainer = trainer_config
 
@@ -584,7 +647,7 @@ if __name__ == "__main__":
         if "modelcheckpoint" in lightning_config:
             modelckpt_cfg = lightning_config.modelcheckpoint
         else:
-            modelckpt_cfg =  OmegaConf.create()
+            modelckpt_cfg = OmegaConf.create()
         modelckpt_cfg = OmegaConf.merge(default_modelckpt_cfg, modelckpt_cfg)
         print(f"Merged modelckpt-cfg: \n{modelckpt_cfg}")
         if version.parse(pl.__version__) < version.parse('1.4.0'):
