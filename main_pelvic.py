@@ -247,12 +247,10 @@ class PelvicDatasetEx(Dataset):
             depth_id = (idx - self.n_slices_train) % self.slices_per_subject_test
             image = np.array(self.data_test_f["data"][subject_id, depth_id: depth_id + 1, :, :])
 
-        ori_image = self.normalize(image.copy())
         image = self.normalize(image).transpose((1, 2, 0))
         image = self.transform(image)
 
         return {
-            "ori_image": ori_image,
             "image": image,
         }
 
