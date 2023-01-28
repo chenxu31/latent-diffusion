@@ -241,11 +241,11 @@ class PelvicDatasetEx(Dataset):
         if idx < self.n_slices_train:
             subject_id = idx // self.slices_per_subject_train
             depth_id = idx % self.slices_per_subject_train
-            image = np.array(self.data_train_f["data"][subject_id, depth_id: depth_id + 1, :, :])
+            image = np.array(self.data_train_f["data"][subject_id, depth_id: depth_id + self.n_slices, :, :])
         else:
             subject_id = (idx - self.n_slices_train) // self.slices_per_subject_test
             depth_id = (idx - self.n_slices_train) % self.slices_per_subject_test
-            image = np.array(self.data_test_f["data"][subject_id, depth_id: depth_id + 1, :, :])
+            image = np.array(self.data_test_f["data"][subject_id, depth_id: depth_id + self.n_slices, :, :])
 
         image = self.normalize(image).transpose((1, 2, 0))
         image = self.transform(image)
