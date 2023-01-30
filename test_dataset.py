@@ -26,13 +26,15 @@ def main():
     dataset = main_pelvic.PelvicDatasetEx(r"D:\datasets\pelvic\h5_data_nonrigid", "ct", n_slices=3)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=16, shuffle=True)
     for data in dataloader:
-        ori_image = data["ori_image"].detach().cpu().numpy()
+        #ori_image = data["ori_image"].detach().cpu().numpy()
         image = data["image"].detach().cpu().numpy()
 
-        ori_image = common_pelvic.generate_display_image(ori_image, is_seg=False)
+        print(image.shape)
+        
+        #ori_image = common_pelvic.generate_display_image(ori_image, is_seg=False)
         image = common_pelvic.generate_display_image(image, is_seg=False)
-
-        skimage.io.imsave(os.path.join("outputs", "ori_im.jpg"), ori_image)
+        
+        #skimage.io.imsave(os.path.join("outputs", "ori_im.jpg"), ori_image)
         skimage.io.imsave(os.path.join("outputs", "im.jpg"), image)
 
         print("xxxx")

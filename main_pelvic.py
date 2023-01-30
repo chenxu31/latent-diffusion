@@ -227,7 +227,7 @@ class PelvicDatasetEx(Dataset):
             transforms.RandomRotation(5, fill=-1),
             transforms.RandomResizedCrop((self.patch_height, self.patch_width), scale=(0.8, 1.0)),
             transforms.RandomHorizontalFlip(),
-            transforms.ColorJitter(saturation=0.1),
+            # transforms.ColorJitter(contrast=0.1),
             # transforms.ColorJitter(brightness=0.9, contrast=0.9, saturation=0.9, hue=0.1),
         ])
 
@@ -248,7 +248,7 @@ class PelvicDatasetEx(Dataset):
             image = np.array(self.data_test_f["data"][subject_id, depth_id: depth_id + self.n_slices, :, :])
 
         image = self.normalize(image).transpose((1, 2, 0))
-        image = self.transform(image).permute((1, 2, 0))
+        image = self.transform(image) #.permute((1, 2, 0))
 
         return {
             "image": image,
